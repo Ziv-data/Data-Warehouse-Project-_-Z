@@ -1,0 +1,14 @@
+# Data-Warehouse-Project-_-Z
+This is designing for data warehouse for some advanced data analytical purpose for business insights and intelligence. 
+
+-- creating DB for DataWarehouse Project and identifing the Schemas( Brone,Silver,Golden)
+
+CREATE DATABASE DataWarehouse;
+ 
+USE DataWarehouse;
+
+-- importing RAW datas from sources for CRM (Customer Relationship Management) 
+ -- 1.customers informations 2. product infromation 3. sale details info
+
+-- importing RAW datas from sources for ERP (Enterprise  Resource Planning) 
+ -- 1. cst_az12 (detail infos like date,gender)  2. loc_a101( location) 3. px_cat_g1v2 (category, subcategory)
