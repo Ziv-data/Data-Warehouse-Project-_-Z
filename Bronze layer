@@ -1,0 +1,134 @@
+Must Read;
+  /* These scripts are querying for create specific tables for CRM and ERP by using DDL and then I insert data into SLIVER layer from data warehouse imports */
+
+
+Tasks are here:
+
+-- creating specific level shemas for different purpose
+
+CREATE SCHEMA bronze; 				-- Create Tables and import data
+                              -- Beforing cleaning -- identify the data modeling and classify the relationship across the tables ( CRM and ERP)
+CREATE SCHEMA silver; 				-- cleaning and tranforming Data / data validtations 
+CREATE SCHEMA gold; 				  -- do some calculations and specify fact and dem table 
+
+
+-- creating tables for CRM and ERP into bronze layer
+
+-- crm_1 creat cst_info( customer information ) from CRM
+CREATE TABLE cst_info (
+	cst_id 				int,
+    cst_key 			varchar(20),
+    cst_firstname		varchar(30),
+    cst_lastname		varchar(20),
+    cst_marital_status	varchar(10),
+    cst_gndr			varchar(20),
+    cst_create_date		date
+);
+
+-- crm_2 creat prd_info( product information ) from CRM
+drop table prd_info; 
+CREATE TABLE if not exists prd_info (
+	prd_id			int,
+	prd_key 		varchar(20),
+	prd_nm			varchar(50),
+	prd_cost		varchar(50),
+	prd_line		varchar(20),
+	prd_start_dt	varchar(20),
+	prd_end_dt		varchar(20)
+);
+
+
+-- crm_3 creat sales_deatails from CRM
+drop table sales_detail;
+CREATE TABLE IF NOT EXISTS sales_detail (
+	sls_ord_num 		varchar(20),
+	sls_prd_key			varchar(20),
+	sls_cust_id			int,
+	sls_order_dt		int,
+	sls_ship_dt			int,
+	sls_due_dt			int,
+	sls_sales			int,
+	sls_quantity		int,
+	sls_price			int
+);
+
+/* 
+-- import data from CRM sources
+LOAD DATA INFILE 'C:\ProgramData\MySQL\MySQL Server 8.0\Uploads\cust_info.csv'
+INTO TABLE cst_info
+FIELDS TERMINATED BY ','
+IGNORE 1 rows; 
+
+*/
+-- insert data from datawarehouse shema for  cst_info (customer infromation)
+
+INSERT INTO bronze.cst_info 
+SELECT *FROM datawarehouse.cust_info;
+
+select * from bronze.cst_info;
+
+--
+-- insert data from datawarehouse shema for prd_info (product infromation)
+
+INSERT INTO bronze.prd_info 
+SELECT * FROM datawarehouse.prd_info;
+
+select * from bronze.prd_info;
+
+
+--
+-- insert data from datawarehouse shema for sales_details 
+
+INSERT INTO bronze.sales_detail
+SELECT * FROM datawarehouse.sales_details;
+
+SELECT * FROM bronze.sales_detail;
+
+
+
+
+--
+-- create tables for ERP ( Enterprise Rresource Plan)
+-- erp-1 
+CREATE TABLE IF NOT EXISTS cst_az12  (
+CID		VARCHAR(50),
+BDATE	VARCHAR(20),
+GEN		VARCHAR(20)
+);
+
+-- erp-2 location
+CREATE TABLE IF NOT EXISTS loc_a101 (
+CID 		VARCHAR(50),
+CNTRY 		VARCHAR(50)
+);
+
+-- erp-3 
+CREATE TABLE IF NOT EXISTS px_cat_g1v2(
+ID 		VARCHAR(50),
+CAT		VARCHAR(50),
+SUBCAT	VARCHAR(50),
+MAINTENANCE 	VARCHAR(50)
+);
+
+--
+-- Insert data to ERP ( from datawharehouse schema to bronze schema)
+-- 
+-- erp-1 cst_az
+INSERT INTO bronze.cst_az12 
+SELECT * FROM datawarehouse.cust_az12;
+
+SELECT * FROM bronze.cst_az12;
+
+--
+-- erp-2 loc_a101
+INSERT INTO bronze.loc_a101
+SELECT * FROM datawarehouse.loc_a101;
+
+SELECT * FROM bronze.loc_a101;
+
+--
+-- erp-3 px_cat_g1v2
+INSERT INTO bronze.px_cat_g1v2
+SELECT * FROM datawarehouse.px_cat_g1v2;
+
+SELECT * FROM bronze.px_cat_g1v2;
