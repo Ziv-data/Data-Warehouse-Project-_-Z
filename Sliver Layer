@@ -1,0 +1,240 @@
+Must Read**
+  /* Cleaning and inserting data from query for sliver layer*/
+ 
+-- analysting and understanding the data for modeling and realationship
+
+-- 1. customer informations
+-- cheking and proofing Data on cst_info (CRM)
+-- handling NUll values and duplicate , trim
+
+-- checking dupicate
+SELECT cst_id, count(cst_id) as flag
+FROM cst_info
+GROUP BY cst_id
+Having count(cst_id) <> 1 ;
+
+
+-- monitor how to assume and interprate duplicate 
+SELECT * FROM cst_info
+WHERE cst_id = 29433 or cst_id = 29466 ;
+
+-- checking Mariral status and gndr
+Select distinct cst_gndr from cst_info;
+
+-- main query for proofing data ( Customer information - CRM )
+-- for data valadition and user fimaliar terms
+
+--
+-- *** main query for prd_info and cleaned datas (CRM) ***
+WITH CTE_cst_info  AS
+(
+SELECT 
+	cst_id,
+	cst_key,
+	trim(cst_firstname) AS firstname, 
+    trim(cst_lastname) AS lastname,
+	CASE upper(cst_marital_status)
+		WHEN 'M' THEN 'Marrige'
+		WHEN 'S' THEN 'Single'
+        ELSE 'N/A'
+    END  AS cst_marital_status,
+    CASE upper(cst_gndr) 
+    WHEN 'M' THEN 'Male'
+    WHEN 'F' THEN 'Femal'
+    ELSE 'N/A'
+    END AS cst_gndr ,
+    cst_create_date,
+ROW_NUMBER() OVER( PARTITION BY cst_id ORDER BY cst_create_date ) AS flag
+FROM cst_info
+)
+SELECT * FROM
+CTE_cst_info
+WHERE flag = 1;      /* ######### MAIN CUSTOMER CRM */
+
+-- ---------------######## FINISHED customer iformations ------###
+
+
+-- 2. Product informations
+
+-- check the depulicate and null 
+SELECT * FROM prd_info
+WHERE prd_id is null; 						-- check null
+
+SELECT prd_id, COUNT(prd_id) FROM prd_info
+GROUP BY prd_id 
+HAVING COUNT(prd_id) > 1; 					-- check depulicate
+
+
+
+-- * Prepare Data* --
+
+	-- sprate prd_key into two keys for realtionship purpose 
+	-- replace Null into 0 in prd_cost column
+	-- replace abbravation into customer fimilar long form in prd_line column
+	-- check the date for validation
+
+SELECT * FROM prd_info	;
+
+-- 
+-- *** main query for prd_info and cleaned datas (CRM) ***
+SELECT 
+	prd_id,
+	LEFT(prd_key,5) AS cat_key,
+	SUBSTRING(prd_key,7, length(prd_key)) AS prd_key,
+	prd_nm,
+	COALESCE( cast(prd_cost AS FLOAT), 0) AS prd_cost,
+	CASE trim(upper(prd_line))     /*-- upper all letters and trim then into just letters ****/
+		WHEN 'R' THEN 'Road'
+		WHEN 'M' THEN 'Mountain'
+		WHEN 'S' THEN 'Other sales'
+		WHEN 'T' THEN 'Touring'
+		ELSE 'N/A' 				-- in this case column prd_line may contain space, nextline, small letter and no_breaking space
+	END AS prd_line,
+    cast( prd_start_dt as date) as prd_start_dt,
+	DATE_SUB(
+			 LEAD (
+					cast( prd_start_dt as date)) OVER( PARTITION BY prd_key ORDER BY cast( prd_start_dt as date) )
+			, INTERVAL 1 DAY 
+            )
+	AS prd_end_date		/*-- coalesce(cast( prd_end_dt as date) , current_date()) as  prd_end_dt -- filling with current date*/
+FROM prd_info;          /* ######### MAIN query PRODUCT CRM */
+
+
+-- check date entry and modify
+
+SELECT prd_id
+/*cast( prd_start_dt as date) as prd_start_dt,        -- fixed query for start_date and end_date
+DATE_SUB(
+		LEAD (cast( prd_start_dt as date)) OVER( PARTITION BY prd_key ORDER BY cast( prd_start_dt as date) ), INTERVAL 1 DAY )
+	AS prd_end_date 
+-- coalesce(cast( prd_end_dt as date) , current_date()) as  prd_end_dt -- filling with current date*/ 
+FROM prd_info
+WHERE  cast( prd_start_dt as date) >= cast( prd_end_dt as date)  ;
+
+-- ---------------######## FINISHED Product iformations------##
+
+
+
+-- 3. sales_details CRM
+
+SELECT * FROM sales_detail;
+
+-- check depulicate 
+-- except no result
+SELECT sls_ord_num, count(sls_ord_num) as flag
+FROM sales_detail
+GROUP BY sls_ord_num
+HAVING  count(sls_ord_num) > 1;
+
+
+-- 
+-- *** main query for sale details and cleaned datas (CRM) ***
+SELECT
+sls_ord_num,
+sls_prd_key, 
+sls_cust_id,
+CASE 
+        WHEN sls_order_dt IN ('0', '', '0000-00-00') THEN NULL
+        ELSE CAST(sls_order_dt AS DATE)
+    END AS sls_order_dt,
+    CASE 
+        WHEN sls_ship_dt IN ('0', '', '0000-00-00') THEN NULL
+        ELSE CAST(sls_ship_dt AS DATE)
+    END AS sls_ship_dt,
+    CASE 
+        WHEN sls_due_dt IN ('0', '', '0000-00-00') THEN NULL
+        ELSE CAST(sls_due_dt AS DATE)  END AS sls_due_dt,
+CASE
+    WHEN IFNULL(sls_sales,0) <= 0 OR sls_sales != sls_quantity* sls_price THEN sls_quantity * ABS(sls_price)
+    ELSE sls_sales
+    END AS sls_sales,
+    sls_quantity,
+CASE
+    WHEN  IFNULL(sls_price,0) <= 0  THEN ABS(sls_sales) / sls_quantity
+    ELSE sls_price
+    END AS sls_price
+FROM bronze.sales_detail;
+--
+-- --------------- /* ######### MAIN sale detals CRM */
+
+-- WHERE sls_order_dt IS NULL OR sls_order_dt != 8 -- CHECK NULL IN DATE
+-- WHERE sls_ord_num != trim(sls_ord_num) -- check space ;
+-- WHERE sls_prd_key not in (select substring(prd_key,7,length(prd_key) ) from prd_info) -- check mathing the prd_key on sales and prd info
+-- WHERE sls_sales <= 0 or sls_quantity <= 0 or sls_sales is null;
+
+
+-- checking sales,price and qty
+SELECT sls_sales,sls_quantity,sls_price
+FROM sales_detail
+WHERE sls_sales IS NULL OR sls_sales <= 0 OR sls_sales != sls_quantity* sls_price
+		OR sls_price IS NULL OR sls_price <= 0
+        ;
+        
+SELECT sls_sales,sls_quantity,sls_price,
+	CASE
+    WHEN IFNULL(sls_sales,0) <= 0 OR sls_sales != sls_quantity* sls_price THEN sls_quantity * ABS(sls_price)
+    ELSE sls_sales
+    END AS sls_sales,sls_quantity,
+    CASE
+    WHEN  IFNULL(sls_price,0) <= 0  THEN ABS(sls_sales) / sls_quantity
+    ELSE sls_price
+    END AS sls_price
+    FROM sales_detail
+    WHERE sls_sales IS NULL OR sls_sales <= 0 OR sls_sales != sls_quantity* sls_price
+		OR sls_price IS NULL OR sls_price <= 0
+        ;
+        
+-- ---------------######## FINISHED sale details----##
+
+-- ERP 
+-- -- 1. cst_az12 ERP -- 
+SELECT DISTINCT * FROM cst_az12;
+
+-- 
+-- *** main query for cst_az12 and cleaned datas (ERP) ***
+SELECT 
+	CASE 
+		WHEN CID like 'NAS%' THEN SUBSTRING(CID,4,LENGTH(CID))
+		ELSE CID 
+		END AS CID,
+    CASE 
+		WHEN BDATE > CURRENT_DATE() THEN CURRENT_DATE()
+        ELSE BDATE 
+        END AS BDATE,
+	CASE 
+		WHEN UPPER(TRIM(GEN)) IN ('F'OR 'FEMALE') THEN 'Female'
+		WHEN UPPER(TRIM(GEN)) IN ('M'OR 'MALE') THEN 'Male'
+		WHEN UPPER(TRIM(GEN))= Null or '' THEN 'N/A'
+        ELSE GEN 
+        END AS GEN
+FROM cst_az12;
+--
+-- --------------- /* ######### MAIN cst_az12 ERP*/
+-- ---------------######## FINISHED cst_az12  ERP ----##
+
+
+-- --2. loc_a101 ERP -- 
+SELECT * FROM loc_a101;
+
+-- check distinct cunrty
+SELECT DISTINCT CNTRY FROM loc_a101;
+
+-- 
+-- *** main query for loc_a101  and cleaned datas (ERP) ***
+
+SELECT 
+		REPLACE(CID,'-','') AS CID,
+		CASE 
+			WHEN TRIM(CNTRY) IS NULL THEN 'N/A'
+			WHEN TRIM(CNTRY) = 'US' THEN 'United State'
+			WHEN TRIM(CNTRY) = 'USA' THEN 'United State'
+			WHEN TRIM(CNTRY) = 'DE' THEN 'Germany'
+			ELSE TRIM(CNTRY) END AS CNTRY
+
+FROM loc_a101;
+
+--
+-- --------------- /* ######### MAIN loc_a101 ERP*/
+
+-- -- 3. px_cat_g1v2 ERP -- 
+SELECT * FROM px_cat_g1v2; 
