@@ -1,0 +1,75 @@
+Must Read;
+  /* these codes is querying for Fact and dimension for BI purpose and analystical purpose by using jon for relationship for CRM and ERP */
+
+-- FOR diamond layer 
+-- make join for business and analystical purpose
+-- gnerate sergorate key to make more effecient and better performace 
+
+-- 1. cst_info - cst_az12- loc_a101 
+
+CREATE VIEW Dim_crm_customer AS
+
+SELECT 
+	ROW_NUMBER() OVER( ORDER BY cst_id ) AS Customer_key, -- surrograte key
+	  ci.cst_id 			    	AS Customer_ID		,
+    ci.cst_key 				    AS Customer_number	,
+    ci.cst_firstname		  AS First_name	,
+    ci.cst_lastname			  AS Last_name	,
+    ci.cst_marital_status	AS Marital_status,
+    ifnull(ca.GEN,'N/A')	As Gender		,
+    ci.cst_create_date	 	AS Customer_create_date    ,
+    ca.BDATE				      AS Birthday_date		,
+    lo.CNTRY				      AS Country
+FROM cst_info ci 
+LEFT JOIN cst_az12 ca
+ON ci.cst_key 	= ca.CID
+LEFT JOIN loc_a101 lo
+ON ci.cst_key = lo.CID ;
+
+select * from dim_crm_customer;
+
+
+-- 2. prd_info and px_cat_g1v2
+
+
+CREATE VIEW Dim_erp_product AS
+SELECT 
+    ROW_NUMBER() OVER( ORDER BY prd_key) AS Product_key,
+    pi.prd_id AS Product_ID,
+    pi.prd_key As Product_Number,
+    pi.prd_nm AS Product_Name,
+    pi.prd_line AS Product_line,
+    pi.prd_start_dt AS Start_Date,
+    pi.cat_key AS Cat_ID,
+    pc.CAT AS Category,
+    pc.SUBCAT AS  Sub_Category,
+    pi.prd_cost AS Product_Cost,
+    pc.MAINTENANCE AS Maintenance
+FROM prd_info pi
+LEFT JOIN px_cat_g1v2 pc
+ON pc.ID = replace(pi.cat_key,'-','_')
+where prd_end_dt is null  -- filter out for history data 
+;
+
+SELECT * FROM dim_erp_product;
+
+-- sales_detail 
+CREATE VIEW Fact_sales AS
+SELECT 
+	sd.sls_ord_num 		,
+	vdp.Product_key,
+	vdc.Customer_key   ,
+  sd.sls_order_dt		,
+	sd.sls_ship_dt			,
+	sd.sls_due_dt			,
+	sd.sls_sales			,
+	sd.sls_quantity		,
+	sd.sls_price		
+FROM sales_detail sd
+LEFT JOIN dim_crm_customer vdc
+ON sd.sls_cust_id = vdc.Customer_ID
+LEFT JOIN dim_erp_product vdp
+ON sd.sls_prd_key = vdp.Product_Number;
+
+select *
+FROM fact_sales;    
