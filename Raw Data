@@ -12,3 +12,27 @@ USE DataWarehouse;
 
 -- importing RAW datas from sources for ERP (Enterprise  Resource Planning) 
  -- 1. cst_az12 (detail infos like date,gender)  2. loc_a101( location) 3. px_cat_g1v2 (category, subcategory)
+
+
+data import Method;;
+1. import data form URL 
+
+
+2.
+LOAD DATA INFILE '/path/to/your/data.csv'
+INTO TABLE your_table_name
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS; -- Use this if your CSV has a header row
+
+Replace /path/to/your/data.csv with the full path to your CSV file.
+Replace your_table_name with the name of the target table.
+Adjust FIELDS TERMINATED BY, ENCLOSED BY, and LINES TERMINATED BY based on your CSV file's format.
+
+ 3. Using MySQL Workbench (for moderate to large datasets):
+MySQL Workbench provides a graphical interface for importing data.
+Connect to your database in MySQL Workbench.
+Navigate to "Server" > "Data Import."
+Choose "Import from Self-Contained File" (for SQL dumps) or "Import from Disk" (for CSV files).
+Follow the wizard to select your file, target schema/table, and configure import settings.
