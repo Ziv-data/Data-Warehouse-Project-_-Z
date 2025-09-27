@@ -1,6 +1,7 @@
 ** Must Read
 		** These scripts prepare data for BI and analystical purposes,then it identify the dimensions and fact tables. 
 			changing the abbrivate forms or terms for users' familiar and make the case for proper and steady **
+
 -- FOR dimond layer 
 -- make join for business and analystical purpose
 -- gnerate sergorate key to make more effecient and better performace 
@@ -68,10 +69,11 @@ SELECT
 	sd.sls_quantity			AS quantity	,
 	sd.sls_price			AS price	
 FROM sales_detail sd
-LEFT JOIN dim_crm_customer vdc
-ON sd.sls_cust_id = vdc.Customer_ID
-LEFT JOIN dim_erp_product vdp
-ON sd.sls_prd_key = vdp.Product_Number;
+LEFT JOIN dim_customer vdc
+ON sd.sls_cust_id = vdc.customer_ID
+LEFT JOIN dim_product vdp
+ON sd.sls_prd_key = vdp.product_number;
+
 
 Select *
 FROM fact_sales;    
