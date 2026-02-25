@@ -226,8 +226,9 @@ SELECT
 		REPLACE(CID,'-','') AS CID,
 		CASE 
 			WHEN TRIM(CNTRY) IS NULL THEN 'N/A'
-			WHEN TRIM(CNTRY) = 'US' THEN 'United State'
-			WHEN TRIM(CNTRY) = 'USA' THEN 'United State'
+			WHEN TRIM(CNTRY) = 'US' THEN 'United States'
+			WHEN TRIM(CNTRY) = 'USA' THEN 'United States'
+            WHEN TRIM(CNTRY) = 'United State' THEN 'United States'
 			WHEN TRIM(CNTRY) = 'DE' THEN 'Germany'
 			ELSE TRIM(CNTRY) END AS CNTRY
 
